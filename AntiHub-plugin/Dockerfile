@@ -16,8 +16,14 @@ COPY package.json package-lock.json* ./
 # 只安装生产环境依赖
 RUN npm ci --only=production
 
+# 安装 PostgreSQL 客户端（用于自动初始化数据库）
+RUN apk add --no-cache postgresql-client
+
 # ----- 阶段 2: 生产镜像 -----
 FROM node:20-alpine AS production
+
+# 安装 PostgreSQL 客户端（用于自动初始化数据库）
+RUN apk add --no-cache postgresql-client
 
 # 设置环境变量
 ENV NODE_ENV=production

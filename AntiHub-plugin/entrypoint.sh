@@ -4,9 +4,53 @@
 # ============================================
 # 从环境变量生成 config.json
 # 支持挂载自定义配置文件
+# 自动检测并初始化数据库
 # ============================================
 
 CONFIG_FILE="/app/config.json"
+SCHEMA_FILE="/app/schema.sql"
+
+# ============================================
+# 1. 自动检测并初始化数据库
+# ============================================
+echo "检查数据库初始化状态..."
+
+# 构建数据库连接字符串
+PGHOST="${DB_HOST:-localhost}"
+PGPORT="${DB_PORT:-5432}"
+PGDATABASE="${DB_NAME:-antigv}"
+PGUSER="${DB_USER:-postgres}"
+PGPASSWORD="${DB_PASSWORD:-postgres}"
+export PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD
+
+# 检查 users 表是否存在
+TABLE_EXISTS=$(psql -tAc "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users');") 2>/dev/null
+
+if [ "$TABLE_EXISTS" = "t" ]; then
+    echo "✅ 数据库已初始化（users 表已存在）"
+else
+    echo "📊 数据库未初始化，开始导入 schema.sql..."
+
+    if [ -f "$SCHEMA_FILE" ]; then
+        if psql -f "$SCHEMA_FILE" 2>/dev/null; then
+            echo "✅ 数据库初始化成功！"
+        else
+            echo "❌ 数据库初始化失败！请检查数据库连接和配置。"
+            echo "如果数据库还未创建，请先创建数据库："
+            echo "  CREATE DATABASE $PGDATABASE;"
+            exit 1
+        fi
+    else
+        echo "❌ 找不到 schema.sql 文件！"
+        exit 1
+    fi
+fi
+
+echo ""
+
+# ============================================
+# 2. 生成 config.json
+# ============================================
 
 # 如果已存在自定义配置文件，跳过生成
 if [ -f "$CONFIG_FILE" ]; then

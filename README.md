@@ -19,15 +19,15 @@
 cp .env.example .env
 ```
 
-2) 初始化插件数据库（只需要做一次）：把 `AntiHub-plugin/schema.sql` 导入到你配置的插件库（默认库名 `antigravity`）。
-
-3) 启动：
+2) 启动：
 
 ```bash
 docker compose up -d
 ```
 
-4) 访问前端：
+**注意**：插件服务会在首次启动时自动检测并初始化数据库，无需手动导入 `schema.sql`。
+
+3) 访问前端：
 
 ## Login
 
