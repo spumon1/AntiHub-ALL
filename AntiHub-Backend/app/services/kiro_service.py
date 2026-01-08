@@ -306,6 +306,45 @@ class KiroService:
             path=f"/api/kiro/oauth/status/{state}"
         )
     
+    async def submit_oauth_callback(self, callback_url: str) -> Dict[str, Any]:
+        """
+        提交 Kiro OAuth 回调（给 AntiHook 用）。
+
+        说明：
+        - Kiro OAuth 的 state 信息在 plug-in API 的 authorize 阶段写入 Redis；
+        - callback 阶段 plug-in API 本身不要求鉴权（没有用户 token 也能完成），因此这里直接代理即可。
+        """
+        url = f"{self.base_url}/api/kiro/oauth/callback"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url=url,
+                json={"callback_url": callback_url},
+                timeout=1200.0,
+            )
+
+        if response.status_code >= 400:
+            upstream_response = None
+            try:
+                upstream_response = response.json()
+            except Exception:
+                try:
+                    upstream_response = {"raw": response.text}
+                except Exception:
+                    pass
+
+            logger.warning(
+                f"上游API错误: status={response.status_code}, url={url}, response={upstream_response}"
+            )
+
+            raise UpstreamAPIError(
+                status_code=response.status_code,
+                message=f"上游API返回错误: {response.status_code}",
+                upstream_response=upstream_response,
+            )
+
+        return response.json()
+
     async def create_account(self, user_id: int, account_data: Dict[str, Any]) -> Dict[str, Any]:
         """创建Kiro账号（通过插件API）"""
         return await self._proxy_request(

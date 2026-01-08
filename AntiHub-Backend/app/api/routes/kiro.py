@@ -13,7 +13,7 @@ from app.api.deps import get_db_session, get_redis
 from app.api.deps_beta import require_beta_user
 from app.models.user import User
 from app.services.kiro_service import KiroService, UpstreamAPIError
-from app.schemas.kiro import KiroOAuthAuthorizeRequest
+from app.schemas.kiro import KiroOAuthAuthorizeRequest, KiroOAuthCallbackRequest
 from app.cache import RedisClient
 
 router = APIRouter(prefix="/api/kiro", tags=["Kiro账号管理 (Beta)"])
@@ -69,6 +69,45 @@ async def get_oauth_authorize_url(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取OAuth授权URL失败: {str(e)}"
+        )
+
+
+@router.post(
+    "/oauth/callback",
+    summary="提交 Kiro OAuth 回调 (AntiHook)",
+    description="用于桌面端 AntiHook 将 kiro:// 回调转发到服务器；后端会代理到 plug-in API 完成处理。"
+)
+async def submit_oauth_callback(
+    request: KiroOAuthCallbackRequest,
+    service: KiroService = Depends(get_kiro_service)
+):
+    """
+    AntiHook 回调入口（不需要用户鉴权）：
+    - OAuth state 信息由 plug-in API 在授权阶段写入 Redis
+    - callback 阶段只需要把 kiro:// 回调 URL 转发给 plug-in API 即可
+    """
+    try:
+        if not request.callback_url or not request.callback_url.lower().startswith("kiro://"):
+            raise ValueError("callback_url 必须是完整的 kiro:// 回调 URL")
+
+        return await service.submit_oauth_callback(callback_url=request.callback_url)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except UpstreamAPIError as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "error": e.extracted_message,
+                "type": "api_error"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"处理 OAuth 回调失败: {str(e)}"
         )
 
 
