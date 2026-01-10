@@ -212,13 +212,11 @@ export default function SettingsPage() {
                           </td>
                           <td className="p-3">
                             {key.config_type === 'kiro' ? (
-                              <Badge>
-                                Kiro
-                              </Badge>
+                              <Badge>Kiro</Badge>
+                            ) : key.config_type === 'qwen' ? (
+                              <Badge variant="outline">Qwen</Badge>
                             ) : (
-                              <Badge variant="secondary">
-                                Antigravity
-                              </Badge>
+                              <Badge variant="secondary">Antigravity</Badge>
                             )}
                           </td>
                           <td className="p-3 text-xs font-mono text-muted-foreground">

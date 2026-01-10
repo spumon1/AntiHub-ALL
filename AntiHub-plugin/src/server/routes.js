@@ -1214,12 +1214,16 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
   try {
     // 从请求头获取账号类型，默认为 antigravity
     const accountType = (req.headers['x-account-type'] || 'antigravity').toLowerCase();
-    
+
     if (accountType === 'kiro') {
       // 使用 kiro 账号系统
       const kiroClient = (await import('../api/kiro_client.js')).default;
       const models = kiroClient.getAvailableModels();
       res.json(models);
+    } else if (accountType === 'qwen') {
+      // 使用 qwen 账号系统
+      const qwenClient = (await import('../api/qwen_client.js')).default;
+      res.json(qwenClient.getAvailableModels());
     } else {
       // 使用 antigravity 账号系统（默认）
       const models = await multiAccountClient.getAvailableModels(req.user.user_id);
