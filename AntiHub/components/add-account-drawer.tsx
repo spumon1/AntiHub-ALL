@@ -83,11 +83,6 @@ export function AddAccountDrawer({ open, onOpenChange, onSuccess }: AddAccountDr
         });
         return;
       }
-      if (platform === 'qwen') {
-        setStep('authorize');
-        return;
-      }
-
       setStep('method');
     } else if (step === 'provider') {
       if (!provider) {
@@ -120,6 +115,20 @@ export function AddAccountDrawer({ open, onOpenChange, onSuccess }: AddAccountDr
       }
     } else if (step === 'method') {
       if (platform === 'qwen') {
+        if (!qwenLoginMethod) {
+          toasterRef.current?.show({
+            title: '选择方式',
+            message: '请选择添加方式',
+            variant: 'warning',
+            position: 'top-right',
+          });
+          return;
+        }
+
+        setOauthUrl('');
+        setOauthState('');
+        setCountdown(600);
+        setIsWaitingAuth(false);
         setStep('authorize');
         return;
       }
@@ -221,7 +230,8 @@ export function AddAccountDrawer({ open, onOpenChange, onSuccess }: AddAccountDr
       }
 
       if (platform === 'qwen') {
-        setStep('platform');
+        setStep('method');
+        setQwenLoginMethod('oauth');
       } else if (platform === 'antigravity') {
         setStep('method');
       } else {
@@ -1049,6 +1059,61 @@ export function AddAccountDrawer({ open, onOpenChange, onSuccess }: AddAccountDr
             </div>
           )}
 
+          {/* 选择添加方式 (Qwen) */}
+          {step === 'method' && platform === 'qwen' && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                选择添加方式
+              </p>
+
+              <div className="space-y-3">
+                <label
+                  className={cn(
+                    "flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors",
+                    qwenLoginMethod === 'oauth' ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="qwenLoginMethod"
+                    value="oauth"
+                    checked={qwenLoginMethod === 'oauth'}
+                    onChange={() => setQwenLoginMethod('oauth')}
+                    className="w-4 h-4 mt-1"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-semibold">一键登录（OAuth，推荐）</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      打开授权页面后自动轮询完成登录
+                    </p>
+                  </div>
+                </label>
+
+                <label
+                  className={cn(
+                    "flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors",
+                    qwenLoginMethod === 'json' ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="qwenLoginMethod"
+                    value="json"
+                    checked={qwenLoginMethod === 'json'}
+                    onChange={() => setQwenLoginMethod('json')}
+                    className="w-4 h-4 mt-1"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-semibold">凭证 JSON 导入</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      适合你已经从 QwenCli 导出了 credential_json
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* 选择添加方式 (Kiro) */}
           {step === 'method' && platform === 'kiro' && (
             <div className="space-y-4">
@@ -1199,74 +1264,6 @@ export function AddAccountDrawer({ open, onOpenChange, onSuccess }: AddAccountDr
               {platform === 'qwen' ? (
                 <>
                   <div className="space-y-3">
-                    <Label className="text-base font-semibold">Qwen 登录方式</Label>
-                    <div className="space-y-3">
-                      <label
-                        className={cn(
-                          "flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors",
-                          qwenLoginMethod === 'oauth' ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          name="qwenLoginMethod"
-                          value="oauth"
-                          checked={qwenLoginMethod === 'oauth'}
-                          onChange={() => setQwenLoginMethod('oauth')}
-                          className="w-4 h-4 mt-1"
-                        />
-                        <div className="flex-1">
-                          <h3 className="font-semibold">一键登录（OAuth，推荐）</h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            打开授权页面后自动轮询完成登录
-                          </p>
-                        </div>
-                      </label>
-
-                      <label
-                        className={cn(
-                          "flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors",
-                          qwenLoginMethod === 'json' ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          name="qwenLoginMethod"
-                          value="json"
-                          checked={qwenLoginMethod === 'json'}
-                          onChange={() => setQwenLoginMethod('json')}
-                          className="w-4 h-4 mt-1"
-                        />
-                        <div className="flex-1">
-                          <h3 className="font-semibold">凭证 JSON 导入</h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            适合你已经从 QwenCli 导出了 credential_json
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-
-                    {qwenLoginMethod === 'oauth' ? (
-                      <p className="text-sm text-muted-foreground">
-                        将打开 Qwen 授权页面，完成后系统会自动轮询并写入账号（不需要粘贴回调地址）。
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        直接粘贴 QwenCli 导出的 JSON 凭证（包含 access_token 等字段），服务端会校验并写入账号。
-                      </p>
-                    )}
-                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                      <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                        <strong>提示</strong>
-                        <br />
-                        {qwenLoginMethod === 'oauth'
-                          ? '授权成功后不会在页面展示 token，服务端会安全保存并用于模型调用。'
-                          : '凭证包含敏感 token，请只在可信环境中粘贴，并避免截图/外发。'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
                     <Label htmlFor="qwen-account-name" className="text-base font-semibold">
                       账号名称（可选）
                     </Label>
@@ -1280,71 +1277,94 @@ export function AddAccountDrawer({ open, onOpenChange, onSuccess }: AddAccountDr
                   </div>
 
                   {qwenLoginMethod === 'json' ? (
-                    <div className="space-y-3">
-                      <Label htmlFor="qwen-credential-json" className="text-base font-semibold">
-                        credential_json
-                      </Label>
-                      <Textarea
-                        id="qwen-credential-json"
-                        placeholder="在此粘贴 QwenCli 导出的 JSON"
-                        value={qwenCredentialJson}
-                        onChange={(e) => setQwenCredentialJson(e.target.value)}
-                        className="font-mono text-sm min-h-[220px]"
-                      />
-                    </div>
+                    <>
+                      <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                          <strong>提示</strong>
+                          <br />
+                          凭证包含敏感 token，请只在可信环境中粘贴，并避免截图/外发。
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <Label htmlFor="qwen-credential-json" className="text-base font-semibold">
+                          credential_json
+                        </Label>
+                        <Textarea
+                          id="qwen-credential-json"
+                          placeholder="在此粘贴 QwenCli 导出的 JSON"
+                          value={qwenCredentialJson}
+                          onChange={(e) => setQwenCredentialJson(e.target.value)}
+                          className="font-mono text-sm min-h-[220px]"
+                        />
+                      </div>
+                    </>
                   ) : (
-                    <div className="space-y-3">
-                      <Label className="text-base font-semibold">授权操作</Label>
-                      <p className="text-sm text-muted-foreground">
-                        点击生成授权链接后，在打开的页面完成授权；系统会自动轮询并写入账号。
-                      </p>
-
-                      <div className="flex gap-2">
-                        <StatefulButton
-                          onClick={handleStartQwenOAuth}
-                          disabled={isWaitingAuth && countdown > 0}
-                          className="flex-1 cursor-pointer"
-                        >
-                          {oauthUrl ? '重新生成并打开' : '生成并打开授权页面'}
-                        </StatefulButton>
-
-                        <Button
-                          onClick={handleOpenOAuthUrl}
-                          variant="outline"
-                          size="lg"
-                          disabled={!oauthUrl}
-                        >
-                          <IconExternalLink className="size-4 mr-2" />
-                          打开
-                        </Button>
-
-                        <Button
-                          onClick={() => {
-                            if (oauthUrl) {
-                              navigator.clipboard.writeText(oauthUrl);
-                              toasterRef.current?.show({
-                                title: '复制成功',
-                                message: '授权链接已复制到剪贴板',
-                                variant: 'success',
-                                position: 'top-right',
-                              });
-                            }
-                          }}
-                          variant="outline"
-                          size="lg"
-                          disabled={!oauthUrl}
-                        >
-                          <IconCopy className="size-4 mr-2" />
-                          复制
-                        </Button>
+                    <>
+                      <div className="space-y-3">
+                        <Label className="text-base font-semibold">OAuth 授权</Label>
+                        <p className="text-sm text-muted-foreground">
+                          点击生成授权链接后，在打开的页面完成授权；系统会自动轮询并写入账号。
+                        </p>
                       </div>
 
-                      {isWaitingAuth && countdown > 0 && (
-                        <p className="text-sm text-muted-foreground">
-                          正在等待授权... 剩余 {formatCountdown(countdown)}
+                      <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                          <strong>提示</strong>
+                          <br />
+                          授权成功后不会在页面展示 token，服务端会安全保存并用于模型调用。
                         </p>
-                      )}
-                    </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label className="text-base font-semibold">授权操作</Label>
+
+                        <div className="flex gap-2">
+                          <StatefulButton
+                            onClick={handleStartQwenOAuth}
+                            disabled={isWaitingAuth && countdown > 0}
+                            className="flex-1 cursor-pointer"
+                          >
+                            {oauthUrl ? '重新生成并打开' : '生成并打开授权页面'}
+                          </StatefulButton>
+
+                          <Button
+                            onClick={handleOpenOAuthUrl}
+                            variant="outline"
+                            size="lg"
+                            disabled={!oauthUrl}
+                          >
+                            <IconExternalLink className="size-4 mr-2" />
+                            打开
+                          </Button>
+
+                          <Button
+                            onClick={() => {
+                              if (oauthUrl) {
+                                navigator.clipboard.writeText(oauthUrl);
+                                toasterRef.current?.show({
+                                  title: '复制成功',
+                                  message: '授权链接已复制到剪贴板',
+                                  variant: 'success',
+                                  position: 'top-right',
+                                });
+                              }
+                            }}
+                            variant="outline"
+                            size="lg"
+                            disabled={!oauthUrl}
+                          >
+                            <IconCopy className="size-4 mr-2" />
+                            复制
+                          </Button>
+                        </div>
+
+                        {isWaitingAuth && countdown > 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            正在等待授权... 剩余 {formatCountdown(countdown)}
+                          </p>
+                        )}
+                      </div>
+                    </>
                   )}
                 </>
               ) : platform === 'antigravity' && loginMethod === 'refresh_token' ? (
@@ -1693,7 +1713,11 @@ export function AddAccountDrawer({ open, onOpenChange, onSuccess }: AddAccountDr
           ) : step === 'method' ? (
             <Button
               onClick={handleContinue}
-              disabled={platform === 'antigravity' ? !loginMethod : !kiroLoginMethod}
+              disabled={
+                platform === 'antigravity' ? !loginMethod :
+                platform === 'qwen' ? !qwenLoginMethod :
+                !kiroLoginMethod
+              }
               className="flex-1 cursor-pointer"
             >
               继续
