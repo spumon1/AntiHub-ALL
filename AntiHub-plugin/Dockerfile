@@ -13,8 +13,8 @@ WORKDIR /app
 # 先复制锁文件，利用 Docker 层缓存
 COPY package.json package-lock.json* ./
 
-# 只安装生产环境依赖
-RUN npm ci --only=production
+# 只安装生产环境依赖（使用国内镜像）
+RUN npm ci --only=production --registry https://registry.npmmirror.com
 
 # 安装 PostgreSQL 客户端（用于自动初始化数据库）
 RUN apk add --no-cache postgresql-client

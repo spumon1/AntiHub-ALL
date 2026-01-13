@@ -34,10 +34,12 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json(data);
 
+    const isSecure = process.env.COOKIE_SECURE === 'true';
+
     if (access_token) {
       response.cookies.set('access_token', access_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7, // 7 天
         path: '/',
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (refresh_token) {
       response.cookies.set('refresh_token', refresh_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 30, // 30 天
         path: '/',
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
     if (user) {
       response.cookies.set('user', JSON.stringify(user), {
         httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
         path: '/',

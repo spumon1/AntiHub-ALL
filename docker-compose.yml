@@ -1,6 +1,7 @@
 services:
   web:
-    image: ghcr.io/${IMAGE_OWNER:-zhongruan0522}/antihub-web:${IMAGE_TAG:-latest}
+    image: ${IMAGE_OWNER:-d0uchebag}/antihub-web:${IMAGE_TAG:-latest}
+    platform: linux/arm64
     container_name: antihub-web
     environment:
       NODE_ENV: production
@@ -16,7 +17,8 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/${IMAGE_OWNER:-zhongruan0522}/antihub-backend:${IMAGE_TAG:-latest}
+    image: ${IMAGE_OWNER:-d0uchebag}/antihub-backend:${IMAGE_TAG:-latest}
+    platform: linux/arm64
     container_name: antihub-backend
     environment:
       APP_ENV: production
@@ -55,7 +57,8 @@ services:
     restart: unless-stopped
 
   plugin:
-    image: ghcr.io/${IMAGE_OWNER:-zhongruan0522}/antihub-plugin:${IMAGE_TAG:-latest}
+    image: ${IMAGE_OWNER:-d0uchebag}/antihub-plugin:${IMAGE_TAG:-latest}
+    platform: linux/arm64
     container_name: antihub-plugin
     environment:
       NODE_ENV: production
@@ -86,6 +89,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    platform: linux/arm64
     container_name: antihub-redis
     command: redis-server --appendonly yes
     volumes:

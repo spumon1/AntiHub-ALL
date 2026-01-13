@@ -50,10 +50,11 @@ export async function middleware(request: NextRequest) {
         if (newTokens) {
           // 刷新成功，设置新的 cookies 并继续请求
           const response = NextResponse.next();
-          
+          const isSecure = process.env.COOKIE_SECURE === 'true';
+
           response.cookies.set('access_token', newTokens.access_token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: isSecure,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7, // 7 天
             path: '/',
@@ -61,7 +62,7 @@ export async function middleware(request: NextRequest) {
 
           response.cookies.set('refresh_token', newTokens.refresh_token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: isSecure,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 30, // 30 天
             path: '/',

@@ -7,8 +7,8 @@ FROM python:3.10-slim-bookworm AS builder
 
 WORKDIR /build
 
-# 安装 uv（超快的 Python 包管理器）
-RUN pip install uv --no-cache
+# 安装 uv（超快的 Python 包管理器）并配置国内镜像
+RUN pip install uv --no-cache -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 复制依赖文件
 COPY pyproject.toml uv.lock* ./
@@ -16,7 +16,7 @@ COPY pyproject.toml uv.lock* ./
 # 安装依赖到虚拟环境（使用 lock，且不尝试安装本项目本身）
 RUN uv venv /opt/venv && \
     . /opt/venv/bin/activate && \
-    uv sync --frozen --no-dev --active --no-install-project
+    uv sync --frozen --no-dev --active --no-install-project --index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 # ============ 运行阶段 ============
 FROM python:3.10-slim-bookworm AS runner

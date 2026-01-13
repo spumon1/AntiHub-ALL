@@ -3,16 +3,19 @@
 # ============================================
 FROM node:20-alpine AS builder
 
-# 安装 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# 安装 pnpm 并配置国内镜像和网络参数
+RUN corepack enable && corepack prepare pnpm@latest --activate && \
+    pnpm config set registry https://registry.npmmirror.com && \
+    pnpm config set fetch-timeout 600000 && \
+    pnpm config set fetch-retries 5
 
 WORKDIR /app
 
 # 复制依赖文件
 COPY package.json pnpm-lock.yaml ./
 
-# 安装依赖 (只安装生产依赖)
-RUN pnpm install --frozen-lockfile --prod=false
+# 安装依赖
+RUN pnpm install --frozen-lockfile
 
 # 复制源代码
 COPY . .
